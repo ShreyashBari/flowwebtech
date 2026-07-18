@@ -339,9 +339,16 @@ if (contactForm) {
       },
       body: JSON.stringify(data)
     })
-    .then(response => {
-      if (!response.ok) throw new Error('Response error');
-      return response.json();
+    .then(async response => {
+      let result = {};
+      try {
+        result = await response.json();
+      } catch (err) {}
+      
+      if (!response.ok) {
+        throw new Error(result.message || 'Response error');
+      }
+      return result;
     })
     .then(result => {
       console.log("Email sent status:", result);
@@ -358,7 +365,21 @@ if (contactForm) {
     .catch(error => {
       console.error('Error sending message:', error);
       setIsSubmitting(false);
-      setShowErrorModal(true);
+      
+      // Check if it is a FormSubmit activation warning
+      const errorMsg = error.message ? error.message.toLowerCase() : '';
+      if (errorMsg.includes('activate') || errorMsg.includes('confirm') || errorMsg.includes('verification')) {
+        const activation = new FeedbackModal({
+          type: 'error',
+          title: 'Activation Required',
+          message: 'FormSubmit.co needs to verify your inbox.<br><br>Please check <strong>flowwebtech.ai@gmail.com</strong> (and your spam folder) and click the activation link.',
+          autoCloseDuration: 0,
+          onClose: () => {}
+        });
+        activation.show();
+      } else {
+        setShowErrorModal(true);
+      }
     });
   });
 }
